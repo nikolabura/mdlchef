@@ -1,0 +1,11 @@
+[package]
+name = "mdl_chef"
+version = "0.1.0"
+authors = ["Nikola Bura"]
+edition = "2018"
+description = "Chefs up memes using MDL (Meme Description Language)."
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+serenity = "0.10.2"
