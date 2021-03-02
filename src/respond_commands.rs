@@ -1,25 +1,36 @@
-use serenity::{
-    model::{interactions::Interaction},
-    prelude::*,
-    utils::MessageBuilder,
-};
+use serenity::{model::interactions::Interaction, prelude::*, utils::MessageBuilder};
 
-use serde_json::json;
-// use std::io; use std::io::Write;
 use colored::*;
+use serde_json::json;
 
-pub async fn interaction_create(ctx: Context, interaction: Interaction) {
+#[path = "./meme_repository.rs"]
+mod meme_repository;
+use super::meme_repository::FormatRepo;
+
+pub async fn interaction_create(
+    frepo: &FormatRepo,
+    ctx: Context,
+    interaction: Interaction,
+) {
     //println!("inter {:#?}", interaction);
     let int = interaction.clone();
     let interaction_data = interaction.data.expect("Interaction had no data");
     let interaction_name = interaction_data.name.as_str();
     let interaction_user = interaction.member.user.name;
     let interaction = int;
-    println!("Got interaction {} from user {}.",
-        interaction_name.yellow(), interaction_user.yellow());
+    println!(
+        "Got interaction {} from user {}.",
+        interaction_name.yellow(),
+        interaction_user.yellow()
+    );
     match interaction_name {
-        "help" => respond_help(ctx, interaction).await,
-        _ => println!("{}... {:#?}", "UNEXPECTED INTERACTION".red().bold(), interaction)
+        "help"      => respond_help(ctx, interaction).await,
+        "listmemes" => respond_listmemes(frepo, ctx, interaction).await,
+        _ => println!(
+            "{}... {:#?}",
+            "UNEXPECTED INTERACTION".red().bold(),
+            interaction
+        ),
     }
 }
 
@@ -28,14 +39,44 @@ async fn respond_help(ctx: Context, interaction: Interaction) {
         .push_bold("MDLChef Bot\n")
         .push("This bot generates memes using MDL, the Meme Description Language.")
         .build();
-    ctx.http.create_interaction_response(
-        *interaction.id.as_u64(),
-        &interaction.token,
-        &json!({
-            "type": 4,
-            "data": {
-                "content": help
-            }
-        })
-    ).await.unwrap();
+    ctx.http
+        .create_interaction_response(
+            *interaction.id.as_u64(),
+            &interaction.token,
+            &json!({
+                "type": 4,
+                "data": {
+                    "content": help
+                }
+            }),
+        )
+        .await
+        .unwrap();
+}
+
+async fn respond_listmemes(frepo: &FormatRepo, ctx: Context, interaction: Interaction) {
+    // start writing message
+    let mut mb = MessageBuilder::new();
+    mb.push_underline("Listing available memes...\n");
+    // print all memes into message
+    for (memeid, _value) in &frepo.formats {
+        for _ in 0..10 {
+            mb.push(format!("- {}\n", memeid));
+        }
+    }
+    // output the message as response
+    let output = mb.build();
+    ctx.http
+        .create_interaction_response(
+            *interaction.id.as_u64(),
+            &interaction.token,
+            &json!({
+                "type": 4,
+                "data": {
+                    "content": output
+                }
+            }),
+        )
+        .await
+        .unwrap();
 }
