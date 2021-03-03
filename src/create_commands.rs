@@ -63,9 +63,9 @@ pub async fn issue_command_creation(client: &Client, application_id: u64) {
     print!("Creating slash commands... ");
     io::stdout().flush().unwrap();
     for command in commands_array {
-        http.create_guild_application_command(
+        http.create_global_application_command(
             application_id,
-            GUILD_ID,
+            //GUILD_ID,
             &command
         ).await.unwrap();
         print!("#");
@@ -73,7 +73,7 @@ pub async fn issue_command_creation(client: &Client, application_id: u64) {
     }
     println!(" Done.");
 
-    // This code block allows you to flush all slash commands
+    // This code block allows you to flush all GUILD slash commands
     const DELETE_ALL_COMMANDS: bool = false;
     if DELETE_ALL_COMMANDS {
         let all_commands = http.get_guild_application_commands(

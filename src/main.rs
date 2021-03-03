@@ -13,9 +13,6 @@ use regex::RegexBuilder;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-use magick_rust::{magick_wand_genesis};
-use std::sync::Once;
-
 mod create_commands;
 mod meme_repository;
 mod respond_commands;
@@ -23,11 +20,8 @@ mod respond_mdl;
 
 struct Handler {
     pub meme_format_repo: meme_repository::FormatRepo,
+    pub settings: HashMap<String, String>,
 }
-
-// Used to make sure MagickWand is initialized exactly once. Note that we
-// do not bother shutting down, we simply exit when we're done.
-static START: Once = Once::new();
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -54,7 +48,8 @@ impl EventHandler for Handler {
             if let Some(cap) = re.captures(msg.content.as_str()) {
                 // Found possible MDL region.
                 let mdlstr = cap.get(0).unwrap().as_str();
-                respond_mdl::respond_mdl(&self.meme_format_repo, ctx, &msg, mdlstr).await;
+                respond_mdl::respond_mdl(&self.meme_format_repo,
+                    ctx, &msg, mdlstr, &self.settings).await;
             }
         }
     }
@@ -87,7 +82,7 @@ async fn main() {
     // Configure the client with your Discord bot token in the settings file.
     let token = settings
         .get("token")
-        .expect("Error: token not found in Settings.toml");
+        .expect("Error: token not found in Settings.toml").clone();
     let application_id: u64 = settings
         .get("application_id")
         .expect("Error: application_id not found in Settings.toml")
@@ -97,17 +92,12 @@ async fn main() {
         .get("meme_repo_folder")
         .expect("Error: meme_repo_folder not found in Settings.toml");
 
-    // Launch ImageMagick
-    START.call_once(|| {
-        magick_wand_genesis();
-    });
-
     // Initialize the meme format repository and put it in the Handler.
     let meme_format_repo = meme_repository::FormatRepo::new(
         PathBuf::from(meme_repo_folder),
         "Meme".to_string()).expect("Died: Failed to create format repo.");
     let handler = Handler {
-        meme_format_repo
+        meme_format_repo, settings
     };
 
     // Create a new instance of the Client, logging in as a bot. This will
