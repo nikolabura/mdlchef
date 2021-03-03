@@ -24,7 +24,7 @@ pub async fn respond_mdl(
 ) {
     // Print username
     print!(
-        "Got likely MDL snippet from user {}... ",
+        "---\nGot likely MDL snippet from user {}... ",
         msg.member
             .as_ref()
             .unwrap()
@@ -69,7 +69,7 @@ pub async fn respond_mdl(
 
     // Appears to be a valid MDL meme
     println!("{}", "Looks valid!".green());
-    println!("{:#?}", meme);
+    //println!("{:#?}", meme);
 
     // Generate the meme and handle errors
     let mut failflag = String::new();
@@ -87,7 +87,9 @@ pub async fn respond_mdl(
 
     // Reply with attachment
     if let Err(why) = msg.channel_id.send_message(&ctx.http, |m| {
-        //m.content("Meme output:");
+        if msg.content.contains("#verbose") {
+            m.content(format!("```js\n// MDLChef MDIR\n{:#?}\n```", meme));
+        }
         m.add_file(serenity::http::AttachmentType::Bytes{
             data: std::borrow::Cow::from(memegen_result),
             filename: String::from("meme.png")

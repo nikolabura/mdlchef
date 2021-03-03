@@ -5,6 +5,8 @@ use std::str;
 use std::error::Error;
 use std::collections::HashMap;
 use std::process::Command;
+use std::time::Instant;
+use colored::*;
 
 #[path = "./meme_repository.rs"]
 mod meme_repository;
@@ -15,9 +17,13 @@ pub fn mdl_to_meme(
     frepo: &FormatRepo,
     settings: &HashMap<String, String>,
 ) -> Result<Vec<u8>, Box<dyn Error>> {
+    // timer
+    let start_time = Instant::now();
+
     // get format
     let fmt = &frepo.formats.get(&mdl.base.format)
         .ok_or(format!("Meme format {} not found.", &mdl.base.format))?;
+    print!("Generating {}... ", &mdl.base.format.blue());
 
     // read in the base image
     let image_path = fmt.image_path.to_str().unwrap();
@@ -66,6 +72,8 @@ pub fn mdl_to_meme(
     // run generator
     gen_cmd.arg("png:-");
     let output_image = gen_cmd.output()?.stdout;
+    println!("Done. Took {:.3} ms.",
+        start_time.elapsed().as_millis().to_string().yellow());
 
     Ok(output_image)
 }

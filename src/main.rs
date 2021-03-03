@@ -6,6 +6,7 @@ use serenity::{
         interactions::Interaction,
     },
     prelude::*,
+    http::Typing,
 };
 
 use colored::*;
@@ -48,8 +49,10 @@ impl EventHandler for Handler {
             if let Some(cap) = re.captures(msg.content.as_str()) {
                 // Found possible MDL region.
                 let mdlstr = cap.get(0).unwrap().as_str();
+                let typing = Typing::start(ctx.http.clone(), msg.channel_id.0).unwrap();
                 respond_mdl::respond_mdl(&self.meme_format_repo,
                     ctx, &msg, mdlstr, &self.settings).await;
+                typing.stop();
             }
         }
     }
