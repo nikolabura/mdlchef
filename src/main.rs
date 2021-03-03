@@ -13,14 +13,21 @@ use regex::RegexBuilder;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+use magick_rust::{magick_wand_genesis};
+use std::sync::Once;
+
 mod create_commands;
-pub mod meme_repository;
+mod meme_repository;
 mod respond_commands;
 mod respond_mdl;
 
 struct Handler {
     pub meme_format_repo: meme_repository::FormatRepo,
 }
+
+// Used to make sure MagickWand is initialized exactly once. Note that we
+// do not bother shutting down, we simply exit when we're done.
+static START: Once = Once::new();
 
 #[async_trait]
 impl EventHandler for Handler {
@@ -47,7 +54,7 @@ impl EventHandler for Handler {
             if let Some(cap) = re.captures(msg.content.as_str()) {
                 // Found possible MDL region.
                 let mdlstr = cap.get(0).unwrap().as_str();
-                respond_mdl::respond_mdl(ctx, &msg, mdlstr).await;
+                respond_mdl::respond_mdl(&self.meme_format_repo, ctx, &msg, mdlstr).await;
             }
         }
     }
@@ -89,6 +96,11 @@ async fn main() {
     let meme_repo_folder = settings
         .get("meme_repo_folder")
         .expect("Error: meme_repo_folder not found in Settings.toml");
+
+    // Launch ImageMagick
+    START.call_once(|| {
+        magick_wand_genesis();
+    });
 
     // Initialize the meme format repository and put it in the Handler.
     let meme_format_repo = meme_repository::FormatRepo::new(

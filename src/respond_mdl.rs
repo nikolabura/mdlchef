@@ -7,8 +7,14 @@ use json5;
 mod mdl;
 use mdl::MdlMeme;
 
+#[path = "./meme_generator.rs"]
+mod meme_generator;
+
+#[path = "./meme_repository.rs"]
+mod meme_repository;
+
 /// Call this to respond to a message containing suspected MDL JSON.
-pub async fn respond_mdl(ctx: Context, msg: &Message, mdlstr: &str) {
+pub async fn respond_mdl(frepo: &super::meme_repository::FormatRepo, ctx: Context, msg: &Message, mdlstr: &str) {
     // Print username
     print!(
         "Got likely MDL snippet from user {}... ",
@@ -64,6 +70,23 @@ pub async fn respond_mdl(ctx: Context, msg: &Message, mdlstr: &str) {
     // Appears to be a valid MDL meme
     println!("{}", "Looks valid!".green());
     println!("{:#?}", meme);
+
+    // Generate the meme and handle errors
+    let memegen_result = match meme_generator::mdl_to_meme(&meme, frepo) {
+        Ok(_) => "".to_string(),
+        Err(e) => e.to_string(),
+    };
+    if memegen_result != "" {
+        reply_error(
+            ctx,
+            msg,
+            "Meme Generation Failure",
+            &memegen_result,
+            true,
+        )
+        .await;
+        return;
+    }
 }
 
 pub async fn reply_error(ctx: Context, msg: &Message, title: &str, error: &str, code: bool) {

@@ -64,8 +64,10 @@ async fn respond_listmemes(frepo: &FormatRepo, ctx: Context, interaction: Intera
     }
     // output the message as response
     let mut output = mb.build();
-    output.truncate(1990);
-    let output = format!("{} ...", output);
+    if output.len() > 1990 {
+        output.truncate(1990);
+        output = format!("{} ...", output);
+    }
     ctx.http
         .create_interaction_response(
             *interaction.id.as_u64(),
