@@ -14,7 +14,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 
 mod create_commands;
-mod meme_repository;
+pub mod meme_repository;
 mod respond_commands;
 mod respond_mdl;
 

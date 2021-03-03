@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use colored::*;
 use std::collections::HashMap;
 use std::io;

@@ -17,10 +17,11 @@ pub struct MdlMeme {
     pub base: MdlBase,
     /// Either a string for single caption at default position,
     /// or an object with top text and bottom text
+    #[serde(default = "empty_mdl_caption")]
     #[serde(deserialize_with = "string_or_struct")]
     pub caption: MdlCaption,
     /// Inserts object
-    pub inserts: Value,
+    pub inserts: Option<Value>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -50,12 +51,20 @@ pub struct MdlCaption {
     pub center_text: Option<String>,
 }
 
+fn empty_mdl_caption() -> MdlCaption {
+    MdlCaption {
+        bottom_text: None,
+        center_text: None,
+        top_text: None,
+    }
+}
+
 impl FromStr for MdlCaption {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(MdlCaption {
             bottom_text: Some(s.to_string()),
             top_text: None,
-            center_text: None
+            center_text: None,
         })
     }
     type Err = String;

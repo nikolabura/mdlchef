@@ -60,12 +60,12 @@ async fn respond_listmemes(frepo: &FormatRepo, ctx: Context, interaction: Intera
     mb.push_underline("Listing available memes...\n");
     // print all memes into message
     for (memeid, _value) in &frepo.formats {
-        for _ in 0..10 {
-            mb.push(format!("- {}\n", memeid));
-        }
+        mb.push(format!("- {}\n", memeid));
     }
     // output the message as response
-    let output = mb.build();
+    let mut output = mb.build();
+    output.truncate(1990);
+    let output = format!("{} ...", output);
     ctx.http
         .create_interaction_response(
             *interaction.id.as_u64(),
