@@ -13,7 +13,7 @@ use regex::RegexBuilder;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-mod create_commands;
+//mod create_commands;
 mod meme_repository;
 mod respond_commands;
 mod respond_mdl;
@@ -67,7 +67,7 @@ impl EventHandler for Handler {
     // private channels, and more.
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name.blue().bold());
-        ctx.set_activity(Activity::playing("DM me please!"))
+        ctx.set_activity(Activity::playing("DM me and say /help"))
             .await;
     }
 
@@ -116,6 +116,7 @@ async fn main() {
     // automatically prepend your bot token with "Bot ", which is a requirement
     // by Discord for bot users.
     let mut client = Client::builder(&token)
+        .application_id(application_id)
         .event_handler(handler)
         .await
         .expect("Error creating client.");
@@ -123,7 +124,14 @@ async fn main() {
     // Create the slash commands.
     // VVVV Set to true to refresh slash commands.
     if true {
-        create_commands::issue_command_creation(&client, application_id).await
+        /*serenity::model::interactions::ApplicationCommand::create_global_application_command(&(client.cache_and_http.http), |a| {
+            a.name("credits").description("View credits and learn about the technology behind this bot.")
+        }).await.unwrap();*/
+        /*println!("{:#?}",
+            serenity::model::interactions::ApplicationCommand::get_global_application_commands(&(client.cache_and_http.http)).await.unwrap());*/
+        /*serenity::model::interactions::ApplicationCommand::delete_global_application_command(&(client.cache_and_http.http),
+            serenity::model::id::CommandId(816539740425814037)).await.unwrap();*/
+        //create_commands::issue_command_creation(&client, application_id).await
     };
 
     // Finally, start a single shard, and start listening to events.

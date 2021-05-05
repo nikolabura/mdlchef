@@ -60,6 +60,7 @@ pub async fn issue_command_creation(client: &Client, application_id: u64) {
 
     // END SLASH COMMANDS
 
+    /*
     print!("Creating slash commands... ");
     io::stdout().flush().unwrap();
     for command in commands_array {
@@ -90,5 +91,5 @@ pub async fn issue_command_creation(client: &Client, application_id: u64) {
             ).await.unwrap();
             println!("Deletion: {:?}", result);
         }
-    }
+    }*/
 }

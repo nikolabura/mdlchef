@@ -18,7 +18,9 @@ json5 = "0.3.0"
 walkdir = "2"
 
 [dependencies.serenity]
-version = "0.10.2"
+git = "https://github.com/serenity-rs/serenity"
+branch = "current"
+#version = "0.10.5"
 default-features = false
 features = [
     "client",
