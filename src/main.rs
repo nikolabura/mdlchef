@@ -6,7 +6,6 @@ use serenity::{
         interactions::Interaction,
     },
     prelude::*,
-    http::Typing,
 };
 
 use colored::*;
@@ -41,18 +40,23 @@ impl EventHandler for Handler {
                 println!("Error sending message: {:?}", why);
             }
         } else if msg.content.contains("MDL/1.") {
+            // Test it's not MDIR
+            if msg.content.contains("// MDLChef MDIR") { return; }
             // Message might be a valid MDL snippet. Regex it.
             let re = RegexBuilder::new(r"\{.*MDL/1\..*\}")
                 .dot_matches_new_line(true)
                 .build()
                 .unwrap();
             if let Some(cap) = re.captures(msg.content.as_str()) {
+                if msg.guild_id.is_some() {
+                    msg.channel_id.say(&ctx.http, "This bot only accepts DMs (direct messages)!").await.unwrap();
+                    return;
+                }
                 // Found possible MDL region.
                 let mdlstr = cap.get(0).unwrap().as_str();
-                let typing = Typing::start(ctx.http.clone(), msg.channel_id.0).unwrap();
+                ctx.http.broadcast_typing(msg.channel_id.0).await.unwrap();
                 respond_mdl::respond_mdl(&self.meme_format_repo,
                     ctx, &msg, mdlstr, &self.settings).await;
-                typing.stop();
             }
         }
     }
@@ -63,12 +67,17 @@ impl EventHandler for Handler {
     // private channels, and more.
     async fn ready(&self, ctx: Context, ready: Ready) {
         println!("{} is connected!", ready.user.name.blue().bold());
-        ctx.set_activity(Activity::playing("serving it up Gary's way"))
+        ctx.set_activity(Activity::playing("DM me please!"))
             .await;
     }
 
     // Triggered when receiving interaction.
     async fn interaction_create(&self, ctx: Context, interaction: Interaction) {
+        //println!("{:#?}", interaction);
+        /*if interaction.guild_id.is_some() {
+            interaction.channel_id.say(&ctx.http, "This bot only accepts DMs (direct messages)!").await.unwrap();
+            return;
+        }*/
         respond_commands::interaction_create(&self.meme_format_repo, ctx, interaction).await;
     }
 }
@@ -113,7 +122,7 @@ async fn main() {
 
     // Create the slash commands.
     // VVVV Set to true to refresh slash commands.
-    if false {
+    if true {
         create_commands::issue_command_creation(&client, application_id).await
     };
 

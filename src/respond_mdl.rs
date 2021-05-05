@@ -25,14 +25,9 @@ pub async fn respond_mdl(
     // Print username
     print!(
         "---\nGot likely MDL snippet from user {}... ",
-        msg.member
-            .as_ref()
-            .unwrap()
-            .nick
-            .as_ref()
-            .unwrap_or(&"#NONICK".to_string())
-            .yellow()
+        msg.author.name.yellow()
     );
+
     // Attempt deserialization
     let meme: MdlMeme = match json5::from_str(mdlstr) {
         Ok(v) => v,
