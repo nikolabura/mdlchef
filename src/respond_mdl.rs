@@ -4,15 +4,7 @@ use std::collections::HashMap;
 use colored::*;
 use json5;
 
-#[path = "./mdl.rs"]
-mod mdl;
-use mdl::MdlMeme;
-
-#[path = "./meme_generator.rs"]
-mod meme_generator;
-
-#[path = "./meme_repository.rs"]
-mod meme_repository;
+use crate::{mdl::MdlMeme, meme_generator};
 
 /// Call this to respond to a message containing suspected MDL JSON.
 pub async fn respond_mdl(

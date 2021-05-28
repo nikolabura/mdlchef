@@ -10,8 +10,6 @@ use std::io;
 use std::io::Write;
 use colored::*;
 
-#[path = "./meme_repository.rs"]
-mod meme_repository;
 use crate::meme_repository::FormatRepo;
 
 pub fn mdl_to_meme(

@@ -3,20 +3,32 @@ use serenity::{model::interactions::Interaction, prelude::*, utils::MessageBuild
 use colored::*;
 use serde_json::json;
 
-#[path = "./meme_repository.rs"]
-mod meme_repository;
-use super::meme_repository::FormatRepo;
+use crate::meme_repository::*;
 
-pub async fn interaction_create(
-    frepo: &FormatRepo,
-    ctx: Context,
-    interaction: Interaction,
-) {
+pub async fn interaction_create(frepo: &FormatRepo, ctx: Context, interaction: Interaction) {
     //println!("inter {:#?}", interaction);
     let int = interaction.clone();
+    if interaction.guild_id.is_some() {
+        let resp = MessageBuilder::new()
+            .push_bold(":warning: Uhoh!\n")
+            .push("This bot only responds in DMs (direct messages). Send `/help` to me in a DM.")
+            .build();
+        ctx.http
+            .create_interaction_response(
+                *interaction.id.as_u64(),
+                &interaction.token,
+                &json!({"type": 4, "data": { "content": resp }}),
+            )
+            .await
+            .unwrap();
+        return;
+    }
     let interaction_data = interaction.data.expect("Interaction had no data");
     let interaction_name = interaction_data.name.as_str();
-    let interaction_user = interaction.user.unwrap().name;
+    let interaction_user = match interaction.user {
+        Some(user) => user.name,
+        None => "nouser".to_string(),
+    };
     let interaction = int;
     println!(
         "Got interaction {} from user {}.",
@@ -24,11 +36,11 @@ pub async fn interaction_create(
         interaction_user.yellow()
     );
     match interaction_name {
-        "help"        => respond_help(ctx, interaction).await,
-        "credits"     => respond_credits(ctx, interaction).await,
+        "help" => respond_help(ctx, interaction).await,
+        "credits" => respond_credits(ctx, interaction).await,
         "searchmemes" => respond_unimpl(ctx, interaction).await,
-        "memeinfo"    => respond_unimpl(ctx, interaction).await,
-        "listmemes"   => respond_listmemes(frepo, ctx, interaction).await,
+        "memeinfo" => respond_unimpl(ctx, interaction).await,
+        "listmemes" => respond_listmemes(frepo, ctx, interaction).await,
         _ => println!(
             "{}... {:#?}",
             "UNEXPECTED INTERACTION".red().bold(),
@@ -54,7 +66,9 @@ async fn respond_help(ctx: Context, interaction: Interaction) {
         bottomText: "you can code your memes"
     }
 }
-```"#)
+```
+"#)
+        .push("Just send a valid MDL snippet in the DM and the bot will automatically recognize it and respond.\n")
         .build();
     ctx.http
         .create_interaction_response(
@@ -79,7 +93,7 @@ async fn respond_credits(ctx: Context, interaction: Interaction) {
         .push_line("- The Serenity Discord library")
         .push_line("- The ImageMagick `caption` command for meme generation")
         .push_line("Note: The source code for this bot is NOT publicly available, due to the CyberDawgs' extreme \
-            anti-open-source and pro-proprietary stance. We don't NEED public auditing. Everything in this bot is totally \
+            anti-open-source and pro-proprietary stance. We don't NEED public auditing. All of the code in this bot is totally \
             and completely secure.")
         .build();
     ctx.http
@@ -87,7 +101,9 @@ async fn respond_credits(ctx: Context, interaction: Interaction) {
             *interaction.id.as_u64(),
             &interaction.token,
             &json!({"type": 4, "data": { "content": resp }}),
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
 }
 
 async fn respond_unimpl(ctx: Context, interaction: Interaction) {
@@ -100,7 +116,9 @@ async fn respond_unimpl(ctx: Context, interaction: Interaction) {
             *interaction.id.as_u64(),
             &interaction.token,
             &json!({"type": 4, "data": { "content": resp }}),
-        ).await.unwrap();
+        )
+        .await
+        .unwrap();
 }
 
 async fn respond_listmemes(frepo: &FormatRepo, ctx: Context, interaction: Interaction) {
