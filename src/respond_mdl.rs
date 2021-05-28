@@ -73,17 +73,21 @@ pub async fn respond_mdl(
     }
 
     // Reply with attachment
-    if let Err(why) = msg.channel_id.send_message(&ctx.http, |m| {
-        if msg.content.contains("#verbose") {
-            m.content(format!("```js\n// MDLChef MDIR\n{:#?}\n```", meme));
-        }
-        m.add_file(serenity::http::AttachmentType::Bytes{
-            data: std::borrow::Cow::from(memegen_result),
-            filename: String::from("meme.png")
-        });
-        m.reference_message(msg);
-        m
-    }).await {
+    if let Err(why) = msg
+        .channel_id
+        .send_message(&ctx.http, |m| {
+            if msg.content.contains("#verbose") {
+                m.content(format!("```js\n// MDLChef MDIR\n{:#?}\n```", meme));
+            }
+            m.add_file(serenity::http::AttachmentType::Bytes {
+                data: std::borrow::Cow::from(memegen_result),
+                filename: String::from("meme.png"),
+            });
+            m.reference_message(msg);
+            m
+        })
+        .await
+    {
         println!("Error sending message: {:?}", why);
     };
 }

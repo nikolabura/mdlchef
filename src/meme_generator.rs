@@ -1,14 +1,12 @@
-//use colored::*;
-//use json5;
-use std::process::Stdio;
-use std::str;
-use std::error::Error;
+use colored::*;
 use std::collections::HashMap;
-use std::process::Command;
-use std::time::Instant;
+use std::error::Error;
 use std::io;
 use std::io::Write;
-use colored::*;
+use std::process::Command;
+use std::process::Stdio;
+use std::str;
+use std::time::Instant;
 
 use crate::meme_repository::FormatRepo;
 
@@ -21,7 +19,9 @@ pub fn mdl_to_meme(
     let start_time = Instant::now();
 
     // get format
-    let fmt = &frepo.formats.get(&mdl.base.format)
+    let fmt = &frepo
+        .formats
+        .get(&mdl.base.format)
         .ok_or(format!("Meme format {} not found.", &mdl.base.format))?;
     print!("Generating {}... ", &mdl.base.format.blue());
     io::stdout().flush().unwrap();
@@ -35,46 +35,85 @@ pub fn mdl_to_meme(
         .expect("Error: impact_font_location not found in Settings.toml");
 
     // determine image width and height
-    let img_w: i32 = str::from_utf8(&Command::new("identify")
-                         .stderr(Stdio::inherit())
-                         .arg("-format").arg("%w").arg(image_path)
-                         .output()?.stdout)?.parse()?;
-    let img_h: i32 = str::from_utf8(&Command::new("identify")
-                         .stderr(Stdio::inherit())
-                         .arg("-format").arg("%h").arg(image_path)
-                         .output()?.stdout)?.parse()?;
+    let img_w: i32 = str::from_utf8(
+        &Command::new("identify")
+            .stderr(Stdio::inherit())
+            .arg("-format")
+            .arg("%w")
+            .arg(image_path)
+            .output()?
+            .stdout,
+    )?
+    .parse()?;
+    let img_h: i32 = str::from_utf8(
+        &Command::new("identify")
+            .stderr(Stdio::inherit())
+            .arg("-format")
+            .arg("%h")
+            .arg(image_path)
+            .output()?
+            .stdout,
+    )?
+    .parse()?;
     let avgdim = (img_w + img_h) / 2;
 
-    // start building the generator command   
+    // start building the generator command
     let mut gen_cmd = Command::new("convert");
-    gen_cmd.arg(image_path)
-           .stderr(Stdio::inherit())
-           .arg("-background").arg("none")
-           .arg("-font").arg(impact_font_location)
-           .arg("-fill").arg("white")
-           .arg("-strokewidth").arg(format!("{}", avgdim / 200))
-           .arg("-stroke").arg("black")
-           .arg("-size").arg(format!("{}x{}", img_w - img_w/12, img_h/4));
+    gen_cmd
+        .arg(image_path)
+        .stderr(Stdio::inherit())
+        .arg("-background")
+        .arg("none")
+        .arg("-font")
+        .arg(impact_font_location)
+        .arg("-fill")
+        .arg("white")
+        .arg("-strokewidth")
+        .arg(format!("{}", avgdim / 200))
+        .arg("-stroke")
+        .arg("black")
+        .arg("-size")
+        .arg(format!("{}x{}", img_w - img_w / 12, img_h / 4));
 
     // add each caption
     if let Some(capt) = &mdl.caption.top_text {
-        gen_cmd.arg("-gravity").arg("north").arg(format!("caption:{}", capt))
-               .arg("-composite");
+        if capt.starts_with("@") {
+            Err("Caption cannot start with @ (at-sign).")?;
+        }
+        gen_cmd
+            .arg("-gravity")
+            .arg("north")
+            .arg(format!("caption:{}", capt))
+            .arg("-composite");
     }
     if let Some(capt) = &mdl.caption.center_text {
-        gen_cmd.arg("-gravity").arg("center").arg(format!("caption:{}", capt))
-               .arg("-composite");
+        if capt.starts_with("@") {
+            Err("Caption cannot start with @ (at-sign).")?;
+        }
+        gen_cmd
+            .arg("-gravity")
+            .arg("center")
+            .arg(format!("caption:{}", capt))
+            .arg("-composite");
     }
     if let Some(capt) = &mdl.caption.bottom_text {
-        gen_cmd.arg("-gravity").arg("south").arg(format!("caption:{}", capt))
-               .arg("-composite");
+        if capt.starts_with("@") {
+            Err("Caption cannot start with @ (at-sign).")?;
+        }
+        gen_cmd
+            .arg("-gravity")
+            .arg("south")
+            .arg(format!("caption:{}", capt))
+            .arg("-composite");
     }
 
     // run generator
     gen_cmd.arg("png:-");
     let output_image = gen_cmd.output()?.stdout;
-    println!("Done. Took {} ms.",
-        start_time.elapsed().as_millis().to_string().yellow());
+    println!(
+        "Done. Took {} ms.",
+        start_time.elapsed().as_millis().to_string().yellow()
+    );
 
     Ok(output_image)
 }

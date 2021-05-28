@@ -5,31 +5,21 @@ use serde_json::json;
 
 use crate::meme_repository::*;
 
+// RECEIVING POINT FOR ALL INTERACTIONS
 pub async fn interaction_create(frepo: &FormatRepo, ctx: Context, interaction: Interaction) {
     //println!("inter {:#?}", interaction);
-    let int = interaction.clone();
-    if interaction.guild_id.is_some() {
-        let resp = MessageBuilder::new()
-            .push_bold(":warning: Uhoh!\n")
-            .push("This bot only responds in DMs (direct messages). Send `/help` to me in a DM.")
-            .build();
-        ctx.http
-            .create_interaction_response(
-                *interaction.id.as_u64(),
-                &interaction.token,
-                &json!({"type": 4, "data": { "content": resp }}),
-            )
-            .await
-            .unwrap();
-        return;
-    }
-    let interaction_data = interaction.data.expect("Interaction had no data");
+    let interaction_data = interaction.data.clone().expect("Interaction had no data");
     let interaction_name = interaction_data.name.as_str();
-    let interaction_user = match interaction.user {
-        Some(user) => user.name,
-        None => "nouser".to_string(),
+    let interaction_user = match &interaction {
+        Interaction {
+            member: Some(member),
+            ..
+        } => member.display_name().to_string(),
+        Interaction {
+            user: Some(user), ..
+        } => user.name.to_string() + " (in DM)",
+        _ => "nouser".to_string(),
     };
-    let interaction = int;
     println!(
         "Got interaction {} from user {}.",
         interaction_name.yellow(),
@@ -92,9 +82,7 @@ async fn respond_credits(ctx: Context, interaction: Interaction) {
         .push_line("- The Rust programming language")
         .push_line("- The Serenity Discord library")
         .push_line("- The ImageMagick `caption` command for meme generation")
-        .push_line("Note: The source code for this bot is NOT publicly available, due to the CyberDawgs' extreme \
-            anti-open-source and pro-proprietary stance. We don't NEED public auditing. All of the code in this bot is totally \
-            and completely secure.")
+        .push_line("- The competitors of DawgCTF 2021, who showed us the way of FOSS")
         .build();
     ctx.http
         .create_interaction_response(
