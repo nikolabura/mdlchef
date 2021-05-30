@@ -3,7 +3,7 @@ use serenity::{model::interactions::Interaction, prelude::*, utils::MessageBuild
 use colored::*;
 use serde_json::json;
 
-use crate::meme_repository::*;
+use crate::{mdl::MdlMeme, meme_repository::*};
 
 // RECEIVING POINT FOR ALL INTERACTIONS
 pub async fn interaction_create(frepo: &FormatRepo, ctx: Context, interaction: Interaction) {
@@ -196,12 +196,24 @@ async fn respond_memeinfo(frepo: &FormatRepo, ctx: Context, interaction: Interac
 }}"#,
             format.memeid, inserts_mdl
         );
-        interaction
+        // generate example meme from the example mdl
+        let example_meme: MdlMeme = json5::from_str(&example_mdl).unwrap();
+        let meme_image = crate::meme_generator::mdl_to_meme(&example_meme, frepo).unwrap();
+        // send a temporary message with the example meme
+        let sent_with_attachment = interaction
             .channel_id
             .unwrap()
-            .send_files(&ctx.http, vec!["memeformats/DrakeYesNo.jpg"], |f| f)
+            .send_message(&ctx, |m| {
+                m.add_file(serenity::http::AttachmentType::Bytes {
+                    data: std::borrow::Cow::from(meme_image),
+                    filename: String::from("meme.png"),
+                })
+            })
             .await
             .unwrap();
+        // get the url of the image we just uploaded
+        let attachment_url = &sent_with_attachment.attachments[0].proxy_url;
+        // send message with a proper embed
         interaction
             .create_interaction_response(&ctx.http, |r| {
                 r.interaction_response_data(|d| {
@@ -224,13 +236,15 @@ async fn respond_memeinfo(frepo: &FormatRepo, ctx: Context, interaction: Interac
                             false,
                         );
                         e.field("Example MDL", format!("```js\n{}\n```", example_mdl), false);
+                        e.thumbnail(attachment_url);
                         e
                     })
                 })
             })
             .await
             .unwrap();
-    
+        // delete the temporary message
+        sent_with_attachment.delete(&ctx).await.unwrap();
     } else {
         // invalid meme id
         interaction

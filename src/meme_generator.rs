@@ -159,12 +159,12 @@ fn apply_caption(
     // loop until the text fits
     let impfont: &Font = &IMPACT_FONT;
     let mut size: f32 = height as f32 * 0.8;
-    while size > 4.0 {
+    while size > 6.0 {
         layout.clear();
         //println!("{:#?}", caption.as_bytes());
         layout.append(&[impfont], &TextStyle::new(caption, size, 0));
         //println!("{}, {}", height, layout.height());
-        if layout.height() <= height as f32 {
+        if layout.height() <= height as f32 && !(layout.lines() > caption.matches(' ').count() + 1){
             break;
         }
         size -= 3.0;
