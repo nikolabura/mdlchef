@@ -1,5 +1,5 @@
-use once_cell::sync::OnceCell;
 use colored::*;
+use once_cell::sync::OnceCell;
 use regex::RegexBuilder;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -15,6 +15,7 @@ use serenity::{
 };
 
 //mod create_commands;
+mod create_commands;
 mod mdl;
 mod meme_generator;
 mod meme_repository;
@@ -34,6 +35,10 @@ impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         // Scan the message for MDL signature
         if msg.content.contains("MDL/1.") {
+            // Ensure it's not a bot
+            if msg.author.bot {
+                return;
+            }
             // Ensure it's not MDIR
             if msg.content.contains("// MDLChef MDIR") {
                 return;
@@ -49,8 +54,7 @@ impl EventHandler for Handler {
                 ctx.http.broadcast_typing(msg.channel_id.0).await.unwrap();
                 // NOTE: this ^^^ breaks interaction response
                 // since iteration response cannot occur while typing :(
-                respond_mdl::respond_mdl(&self.meme_format_repo, ctx, &msg, mdlstr)
-                    .await;
+                respond_mdl::respond_mdl(&self.meme_format_repo, ctx, &msg, mdlstr).await;
             }
         }
     }
@@ -116,15 +120,8 @@ async fn main() {
 
     // Create the slash commands.
     // VVVV Set to true to refresh slash commands.
-    if true {
-        /*serenity::model::interactions::ApplicationCommand::create_global_application_command(&(client.cache_and_http.http), |a| {
-            a.name("credits").description("View credits and learn about the technology behind this bot.")
-        }).await.unwrap();*/
-        /*println!("{:#?}",
-        serenity::model::interactions::ApplicationCommand::get_global_application_commands(&(client.cache_and_http.http)).await.unwrap());*/
-        /*serenity::model::interactions::ApplicationCommand::delete_global_application_command(&(client.cache_and_http.http),
-        serenity::model::id::CommandId(816539740425814037)).await.unwrap();*/
-        //create_commands::issue_command_creation(&client, application_id).await
+    if false {
+        create_commands::issue_command_creation(&client).await;
     };
 
     // Finally, start a single shard, and start listening to events.

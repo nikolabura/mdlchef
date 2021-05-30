@@ -22,7 +22,10 @@ pub async fn interaction_create(frepo: &FormatRepo, ctx: Context, interaction: I
     };
     println!(
         "--- {}\nGot interaction {} from user {}.",
-        chrono::Local::now().format("%a %b %e %T").to_string().bright_black(),
+        chrono::Local::now()
+            .format("%a %b %e %T")
+            .to_string()
+            .bright_black(),
         interaction_name.yellow(),
         interaction_user.yellow()
     );
@@ -30,7 +33,7 @@ pub async fn interaction_create(frepo: &FormatRepo, ctx: Context, interaction: I
         "help" => respond_help(ctx, interaction).await,
         "credits" => respond_credits(ctx, interaction).await,
         "searchmemes" => respond_unimpl(ctx, interaction).await,
-        "memeinfo" => respond_unimpl(ctx, interaction).await,
+        "memeinfo" => respond_memeinfo(frepo, ctx, interaction).await,
         "listmemes" => respond_listmemes(frepo, ctx, interaction).await,
         _ => println!(
             "{}... {:#?}",
@@ -59,7 +62,8 @@ async fn respond_help(ctx: Context, interaction: Interaction) {
 }
 ```
 "#)
-        .push("Just send a valid MDL snippet in the DM and the bot will automatically recognize it and respond.\n")
+        .push("Just send a valid MDL snippet in chat and the bot will automatically recognize it and respond. ")
+        .push("It can be either standalone, in a \\`\\`\\` code structure, or surrounded by other text - anything should work.")
         .build();
     ctx.http
         .create_interaction_response(
@@ -116,7 +120,9 @@ async fn respond_listmemes(frepo: &FormatRepo, ctx: Context, interaction: Intera
     let mut mb = MessageBuilder::new();
     mb.push_underline("Listing available memes...\n");
     // print all memes into message
-    for (memeid, _value) in &frepo.formats {
+    let mut memeids: Vec<&String> = frepo.formats.keys().collect();
+    memeids.sort();
+    for memeid in memeids {
         mb.push(format!("{}\n", memeid));
     }
     // output the message as response
@@ -138,4 +144,102 @@ async fn respond_listmemes(frepo: &FormatRepo, ctx: Context, interaction: Intera
         )
         .await
         .unwrap();
+}
+
+async fn respond_memeinfo(frepo: &FormatRepo, ctx: Context, interaction: Interaction) {
+    let memeid = interaction
+        .clone()
+        .data
+        .unwrap()
+        .options
+        .into_iter()
+        .find(|o| o.name.eq("memeid"))
+        .expect("No memeid interaction argument found")
+        .value
+        .expect("Memeid had no value");
+    let memeid = memeid.as_str().expect("Memeid wasn't a string");
+
+    // check if it's a valid memeid
+    if let Some(format) = frepo.formats.get(memeid) {
+        // it is valid!
+        let insert_names = format
+            .inserts
+            .keys()
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
+        // construct the example MDL
+        let mut inserts_mdl = String::new();
+        if insert_names.len() > 0 {
+            inserts_mdl.push_str(",\n  inserts: {\n");
+            for (i, insert) in insert_names.iter().enumerate() {
+                inserts_mdl.push_str(
+                    format!(
+                        "    {}: \"{}\"{}\n",
+                        insert,
+                        insert,
+                        if i == insert_names.len() - 1 { "" } else { "," }
+                    )
+                    .as_str(),
+                );
+            }
+            inserts_mdl.push_str("  }");
+        }
+        let example_mdl = format!(
+            r#"{{
+  version: "MDL/1.1",
+  type: "meme",
+  base: "{}",
+  caption: {{
+    topText: "",
+    bottomText: ""
+  }}{}
+}}"#,
+            format.memeid, inserts_mdl
+        );
+        interaction
+            .channel_id
+            .unwrap()
+            .send_files(&ctx.http, vec!["memeformats/DrakeYesNo.jpg"], |f| f)
+            .await
+            .unwrap();
+        interaction
+            .create_interaction_response(&ctx.http, |r| {
+                r.interaction_response_data(|d| {
+                    d.embed(|e| {
+                        e.title(&format.memeid);
+                        e.description("MDLChef Meme Information");
+                        e.color(serenity::utils::Colour::from_rgb(133, 198, 232));
+                        e.field("Filename", &format.image_path.to_str().unwrap(), false);
+                        e.field(
+                            "Inserts",
+                            if insert_names.len() > 0 {
+                                insert_names
+                                    .iter()
+                                    .map(|s| format!("`{}`", s))
+                                    .collect::<Vec<String>>()
+                                    .join(", ")
+                            } else {
+                                "*None*".to_string()
+                            },
+                            false,
+                        );
+                        e.field("Example MDL", format!("```js\n{}\n```", example_mdl), false);
+                        e
+                    })
+                })
+            })
+            .await
+            .unwrap();
+    
+    } else {
+        // invalid meme id
+        interaction
+            .create_interaction_response(ctx.http, |r| {
+                r.interaction_response_data(|d| {
+                    d.content(format!(":bangbang: Invalid meme identifier `{}`.", memeid))
+                })
+            })
+            .await
+            .unwrap();
+    };
 }

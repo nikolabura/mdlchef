@@ -52,7 +52,15 @@ pub fn mdl_to_meme(
 
     // apply captions which exist
     if let Some(capt) = &mdl.caption.top_text {
-        img = apply_caption(img, capt, 20, 10, base_image_w - 40, caption_height);
+        img = apply_caption(
+            img,
+            capt,
+            20,
+            10,
+            base_image_w - 40,
+            caption_height,
+            VerticalAlign::Top,
+        );
     }
     if let Some(capt) = &mdl.caption.center_text {
         img = apply_caption(
@@ -62,6 +70,7 @@ pub fn mdl_to_meme(
             caption_height + 10,
             base_image_w - 40,
             caption_height,
+            VerticalAlign::Middle,
         );
     }
     if let Some(capt) = &mdl.caption.bottom_text {
@@ -72,7 +81,31 @@ pub fn mdl_to_meme(
             base_image_h - caption_height - 10,
             base_image_w - 40,
             caption_height,
+            VerticalAlign::Bottom,
         );
+    }
+
+    // apply inserts which exist
+    if let Some(inserts) = &mdl.inserts {
+        let inserts = inserts
+            .as_object()
+            .ok_or("Key 'inserts' should be an object.")?;
+        for (insert_name, insert_val) in inserts {
+            let coords = fmt.inserts.get(insert_name).ok_or(format!(
+                "This meme does not have an insert called \"{}\"",
+                insert_name
+            ))?;
+            let insert_capt = insert_val.as_str().ok_or("Insert value must be a string.")?;
+            img = apply_caption(
+                img,
+                insert_capt,
+                coords.0.0,
+                coords.0.1,
+                coords.1.0 - coords.0.0,
+                coords.1.1 - coords.0.1,
+                VerticalAlign::Middle,
+            );
+        }
     }
 
     // encode to PNG and output to vector
@@ -102,6 +135,7 @@ fn apply_caption(
     y_top: u32,
     width: u32,
     height: u32,
+    vert_align: VerticalAlign,
 ) -> image::RgbaImage {
     use image::DynamicImage::*;
 
@@ -117,7 +151,7 @@ fn apply_caption(
         max_width: Some(width as f32),
         max_height: Some(height as f32),
         horizontal_align: HorizontalAlign::Center,
-        vertical_align: VerticalAlign::Middle,
+        vertical_align: vert_align,
         wrap_style: WrapStyle::Word,
         wrap_hard_breaks: true,
     });
@@ -127,6 +161,7 @@ fn apply_caption(
     let mut size: f32 = height as f32 * 0.8;
     while size > 4.0 {
         layout.clear();
+        //println!("{:#?}", caption.as_bytes());
         layout.append(&[impfont], &TextStyle::new(caption, size, 0));
         //println!("{}, {}", height, layout.height());
         if layout.height() <= height as f32 {
@@ -137,6 +172,7 @@ fn apply_caption(
 
     // draw each glyph onto the capt_img
     for glyph in layout.glyphs() {
+        //println!("{:#?}", glyph);
         let (metrics, bitmap) = IMPACT_FONT.rasterize_config(glyph.key);
         let height = metrics.height;
         let width = metrics.width;
@@ -160,22 +196,24 @@ fn apply_caption(
     }
 
     // add border around letters
-    let old_capt_img = capt_img.clone();
-    for x in (max(x_left, 1))..(min(x_left + width, capt_img.width() - 1)) {
-        for y in (max(y_top, 1))..(min(y_top + height, capt_img.height() - 1)) {
-            let nw = old_capt_img.get_pixel(x - 1, y - 1).0[1] > 0;
-            let nc = old_capt_img.get_pixel(x + 0, y - 1).0[1] > 0;
-            let ne = old_capt_img.get_pixel(x + 1, y - 1).0[1] > 0;
+    for _ in 0..2 {
+        let old_capt_img = capt_img.clone();
+        for x in (max(x_left, 1))..(min(x_left + width, capt_img.width() - 1)) {
+            for y in (max(y_top, 1))..(min(y_top + height, capt_img.height() - 1)) {
+                let nw = old_capt_img.get_pixel(x - 1, y - 1).0[1] > 0;
+                let nc = old_capt_img.get_pixel(x + 0, y - 1).0[1] > 0;
+                let ne = old_capt_img.get_pixel(x + 1, y - 1).0[1] > 0;
 
-            let cw = old_capt_img.get_pixel(x - 1, y + 0).0[1] > 0;
-            let ce = old_capt_img.get_pixel(x + 1, y + 0).0[1] > 0;
+                let cw = old_capt_img.get_pixel(x - 1, y + 0).0[1] > 0;
+                let ce = old_capt_img.get_pixel(x + 1, y + 0).0[1] > 0;
 
-            let sw = old_capt_img.get_pixel(x - 1, y + 1).0[1] > 0;
-            let sc = old_capt_img.get_pixel(x + 0, y + 1).0[1] > 0;
-            let se = old_capt_img.get_pixel(x + 1, y + 1).0[1] > 0;
+                let sw = old_capt_img.get_pixel(x - 1, y + 1).0[1] > 0;
+                let sc = old_capt_img.get_pixel(x + 0, y + 1).0[1] > 0;
+                let se = old_capt_img.get_pixel(x + 1, y + 1).0[1] > 0;
 
-            if nw || nc || ne || cw || ce || sw || sc || se {
-                capt_img.get_pixel_mut(x, y).0[1] = 255;
+                if nw || nc || ne || cw || ce || sw || sc || se {
+                    capt_img.get_pixel_mut(x, y).0[1] = 255;
+                }
             }
         }
     }
