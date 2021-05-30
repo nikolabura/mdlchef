@@ -21,7 +21,8 @@ pub async fn interaction_create(frepo: &FormatRepo, ctx: Context, interaction: I
         _ => "nouser".to_string(),
     };
     println!(
-        "Got interaction {} from user {}.",
+        "--- {}\nGot interaction {} from user {}.",
+        chrono::Local::now().format("%a %b %e %T").to_string().bright_black(),
         interaction_name.yellow(),
         interaction_user.yellow()
     );
@@ -81,7 +82,8 @@ async fn respond_credits(ctx: Context, interaction: Interaction) {
         .push_line("Thank you to...")
         .push_line("- The Rust programming language")
         .push_line("- The Serenity Discord library")
-        .push_line("- The ImageMagick `caption` command for meme generation")
+        .push_line("- ~~The ImageMagick `caption` command for meme generation~~")
+        .push_line("- The `fontdue` and `image` crates")
         .push_line("- The competitors of DawgCTF 2021, who showed us the way of FOSS")
         .build();
     ctx.http

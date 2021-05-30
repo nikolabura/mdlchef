@@ -1,5 +1,4 @@
 use serenity::{model::channel::Message, prelude::*};
-use std::collections::HashMap;
 
 use colored::*;
 use json5;
@@ -11,12 +10,12 @@ pub async fn respond_mdl(
     frepo: &super::meme_repository::FormatRepo,
     ctx: Context,
     msg: &Message,
-    mdlstr: &str,
-    settings: &HashMap<String, String>,
+    mdlstr: &str
 ) {
     // Print username
     print!(
-        "---\nGot likely MDL snippet from user {}... ",
+        "--- {}\nGot likely MDL snippet from user {}... ",
+        chrono::Local::now().format("%a %b %e %T").to_string().bright_black(),
         msg.author.name.yellow()
     );
 
@@ -60,7 +59,7 @@ pub async fn respond_mdl(
 
     // Generate the meme and handle errors
     let mut failflag = String::new();
-    let memegen_result = match meme_generator::mdl_to_meme(&meme, frepo, settings) {
+    let memegen_result = match meme_generator::mdl_to_meme(&meme, frepo) {
         Ok(v) => v,
         Err(e) => {
             failflag = format!("{}", e);

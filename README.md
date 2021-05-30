@@ -4,11 +4,11 @@ MDLChef is a Discord bot written in Rust using the Serenity framework. It genera
 
 ## Building
 
-To run, run `cargo run`.
+To run, run `cargo run`. We recommend using `cargo run --release` for greatly improved performance (meme generation in ~150ms in release mode, versus ~4000ms in debug mode).
 
 ### Requirements
 
-ImageMagick must be installed.
+- Impact font (recommend using `msttcorefonts`).
 
 ### Hosting
 
@@ -28,8 +28,8 @@ impact_font_location = "/usr/share/fonts/truetype/msttcorefonts/Impact.ttf"
 
 - `token` should be your Discord bot token.
 - `application_id` should be your Discord application ID.
-- `meme_repo_folder` points to the folder in the top-level directory which contains the meme repository.
-- `impact_font_location` is the location of the `Impact.ttf` file on your machine. This will be passed to ImageMagick.
+- `meme_repo_folder` points to the folder in the top-level directory which contains the meme repository. By default this is `memeformats`.
+- `impact_font_location` is the location of the `Impact.ttf` file on your machine.
 
 ## Usage
 
@@ -44,7 +44,7 @@ Add the bot to a Discord server. Then, in any channel where the bot has read and
   },
   caption: {
     topText: "Good thing",
-    bottomText:"Hmm bad thing?"
+    bottomText: "Hmm bad thing?"
   }
 }
 ```

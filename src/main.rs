@@ -1,3 +1,9 @@
+use once_cell::sync::OnceCell;
+use colored::*;
+use regex::RegexBuilder;
+use std::collections::HashMap;
+use std::path::PathBuf;
+
 use serenity::{
     async_trait,
     model::{
@@ -8,17 +14,14 @@ use serenity::{
     prelude::*,
 };
 
-use colored::*;
-use regex::RegexBuilder;
-use std::collections::HashMap;
-use std::path::PathBuf;
-
 //mod create_commands;
 mod mdl;
 mod meme_generator;
 mod meme_repository;
 mod respond_commands;
 mod respond_mdl;
+
+pub static SETTINGS: OnceCell<HashMap<String, String>> = OnceCell::new();
 
 struct Handler {
     pub meme_format_repo: meme_repository::FormatRepo,
@@ -44,7 +47,9 @@ impl EventHandler for Handler {
                 // Found possible MDL region.
                 let mdlstr = cap.get(0).unwrap().as_str();
                 ctx.http.broadcast_typing(msg.channel_id.0).await.unwrap();
-                respond_mdl::respond_mdl(&self.meme_format_repo, ctx, &msg, mdlstr, &self.settings)
+                // NOTE: this ^^^ breaks interaction response
+                // since iteration response cannot occur while typing :(
+                respond_mdl::respond_mdl(&self.meme_format_repo, ctx, &msg, mdlstr)
                     .await;
             }
         }
@@ -75,6 +80,7 @@ async fn main() {
         .merge(config::File::with_name("Settings"))
         .expect("Expected Settings.toml file in top directory");
     let settings: HashMap<String, String> = settings.try_into::<HashMap<String, String>>().unwrap();
+    SETTINGS.set(settings.clone()).unwrap();
 
     // Get bot token, app ID, and meme repo directory location from the settings
     let token: String = settings
