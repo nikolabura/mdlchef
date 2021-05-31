@@ -82,7 +82,7 @@ async fn main() {
     let mut settings = config::Config::default();
     settings
         .merge(config::File::with_name("Settings"))
-        .expect("Expected Settings.toml file in top directory");
+        .expect("Expected Settings.toml file in current directory");
     let settings: HashMap<String, String> = settings.try_into::<HashMap<String, String>>().unwrap();
     SETTINGS.set(settings.clone()).unwrap();
 

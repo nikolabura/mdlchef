@@ -1,6 +1,5 @@
 use colored::*;
-use image::{EncodableLayout, ImageEncoder};
-use std::cmp::{max, min};
+use image::{EncodableLayout, ImageBuffer, ImageEncoder};
 use std::collections::HashMap;
 use std::error::Error;
 use std::io;
@@ -95,14 +94,16 @@ pub fn mdl_to_meme(
                 "This meme does not have an insert called \"{}\"",
                 insert_name
             ))?;
-            let insert_capt = insert_val.as_str().ok_or("Insert value must be a string.")?;
+            let insert_capt = insert_val
+                .as_str()
+                .ok_or("Insert value must be a string.")?;
             img = apply_caption(
                 img,
                 insert_capt,
-                coords.0.0,
-                coords.0.1,
-                coords.1.0 - coords.0.0,
-                coords.1.1 - coords.0.1,
+                coords.0 .0,
+                coords.0 .1,
+                coords.1 .0 - coords.0 .0,
+                coords.1 .1 - coords.0 .1,
                 VerticalAlign::Middle,
             );
         }
@@ -127,6 +128,19 @@ pub fn mdl_to_meme(
     Ok(png_out)
 }
 
+const PRINT_TIME_CAPTION_APPLICATION: bool = false;
+fn print_time(start_time: &mut (Instant, Instant), text: &str) {
+    if PRINT_TIME_CAPTION_APPLICATION {
+        println!(
+            "{}: {} ms. Total {} ms.",
+            text,
+            start_time.0.elapsed().as_millis().to_string().yellow(),
+            start_time.1.elapsed().as_millis().to_string()
+        );
+        (*start_time).0 = Instant::now();
+    }
+}
+
 /// Note: y is 0 at top, grows downwards.
 fn apply_caption(
     mut base: image::RgbaImage,
@@ -139,10 +153,15 @@ fn apply_caption(
 ) -> image::RgbaImage {
     use image::DynamicImage::*;
 
+    let mut start_time = (Instant::now(), Instant::now());
+    print_time(&mut start_time, "start");
+
     let mut capt_img: image::GrayAlphaImage =
         image::ImageBuffer::from_pixel(base.width(), base.height(), image::LumaA([0, 0]));
 
     let mut layout = Layout::<()>::new(CoordinateSystem::PositiveYDown);
+
+    print_time(&mut start_time, "layout");
 
     // initialize layout settings for caption area
     layout.reset(&LayoutSettings {
@@ -164,11 +183,14 @@ fn apply_caption(
         //println!("{:#?}", caption.as_bytes());
         layout.append(&[impfont], &TextStyle::new(caption, size, 0));
         //println!("{}, {}", height, layout.height());
-        if layout.height() <= height as f32 && !(layout.lines() > caption.matches(' ').count() + 1){
+        if layout.height() <= height as f32 && !(layout.lines() > caption.matches(' ').count() + 1)
+        {
             break;
         }
         size -= 3.0;
     }
+
+    print_time(&mut start_time, "loop till fits");
 
     // draw each glyph onto the capt_img
     for glyph in layout.glyphs() {
@@ -195,32 +217,31 @@ fn apply_caption(
         }
     }
 
+    print_time(&mut start_time, "draw glyphs");
+
     // add border around letters
-    for _ in 0..2 {
-        let old_capt_img = capt_img.clone();
-        for x in (max(x_left, 1))..(min(x_left + width, capt_img.width() - 1)) {
-            for y in (max(y_top, 1))..(min(y_top + height, capt_img.height() - 1)) {
-                let nw = old_capt_img.get_pixel(x - 1, y - 1).0[1] > 0;
-                let nc = old_capt_img.get_pixel(x + 0, y - 1).0[1] > 0;
-                let ne = old_capt_img.get_pixel(x + 1, y - 1).0[1] > 0;
-
-                let cw = old_capt_img.get_pixel(x - 1, y + 0).0[1] > 0;
-                let ce = old_capt_img.get_pixel(x + 1, y + 0).0[1] > 0;
-
-                let sw = old_capt_img.get_pixel(x - 1, y + 1).0[1] > 0;
-                let sc = old_capt_img.get_pixel(x + 0, y + 1).0[1] > 0;
-                let se = old_capt_img.get_pixel(x + 1, y + 1).0[1] > 0;
-
-                if nw || nc || ne || cw || ce || sw || sc || se {
-                    capt_img.get_pixel_mut(x, y).0[1] = 255;
-                }
-            }
+    let mut transparency_plane =
+        ImageBuffer::from_fn(capt_img.width(), capt_img.height(), |x, y| {
+            return image::Luma([capt_img.get_pixel(x, y).0[1]]);
+        });
+    print_time(&mut start_time, "extract plane");
+    imageproc::morphology::dilate_mut(
+        &mut transparency_plane,
+        imageproc::distance_transform::Norm::LInf,
+        std::convert::TryInto::try_into((capt_img.height() + capt_img.width()) / (2 * 150))
+            .unwrap(),
+    );
+    print_time(&mut start_time, "dialating");
+    //let transparency_plane = imageproc::filter::gaussian_blur_f32(&transparency_plane, 1.2);
+    let transparency_plane = imageproc::filter::box_filter(&transparency_plane, 1, 1);
+    print_time(&mut start_time, "blurring");
+    for (_, r) in capt_img.enumerate_rows_mut() {
+        for (x, y, p) in r {
+            p.0[1] = transparency_plane.get_pixel(x, y).0[0];
         }
     }
 
-    /*image::DynamicImage::into_rgba8(ImageLumaA8(capt_img.clone()))
-    .save("bruh2.png")
-    .unwrap();*/
+    print_time(&mut start_time, "restore plane");
 
     // overlay capt_img over the base
     image::imageops::overlay(
@@ -229,6 +250,8 @@ fn apply_caption(
         0,
         0,
     );
+
+    print_time(&mut start_time, "overlay");
 
     return base;
 }
