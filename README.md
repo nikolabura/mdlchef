@@ -38,19 +38,33 @@ Add the bot to a Discord server. Then, in any channel where the bot has read and
 ```js
 {
   version: "MDL/1.1",
-  type: 'meme',
+  type: "meme",
   base: {
     format: "Meme.DrakeYesNo"
   },
-  caption: {
-    topText: "Good thing",
-    bottomText: "Hmm bad thing?"
+  inserts: {
+    bad: "Generating memes with Imgflip",
+    good: "Writing memes in MDL"
   }
 }
 ```
 
 It can be either alone or in a code-block. The bot is triggered by the presence of `MDL/1` and a valid JSON5 object.
 
-The bot also has several slash commands; enable the flag in main.rs to populate these for your own bot instance.
+Another example of MDL:
+
+```js
+{
+  version: "MDL/1.1",
+  type: "meme",
+  base: "Meme.UtopianWorld",
+  caption: {
+    topText: "the world if",
+    bottomText: "memes all used MDL"
+  }
+}
+```
+
+The bot also has several slash commands; enable the flag in `main.rs` to populate these for your own bot instance.
 
 Have fun!
